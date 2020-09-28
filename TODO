@@ -1,0 +1,4 @@
+[ ] remove duplicated organisation load from `datatype/organisation.py`
+[ ] use proper organisation object interface in transform, index, harmonise etc.
+[ ] 'tell dont ask' - suggest passing in field -> datatype map to harmonise, rather than having it call specification
+

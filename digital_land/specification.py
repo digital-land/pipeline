@@ -3,6 +3,7 @@ import csv
 import os
 import re
 
+# from .datatype.enum import EnumDataType
 from .datatype.address import AddressDataType
 from .datatype.date import DateDataType
 from .datatype.decimal import DecimalDataType
@@ -34,6 +35,16 @@ class Specification:
         self.load_field(path)
         self.load_schema_field(path)
         self.load_typology(path)
+
+        # DEBUG
+        # datatypes = []
+        # for field in self.schema_field["brownfield-land"]:
+        #     datatypes.append(self.field[field]["datatype"])
+
+        # self.schema = json.load(open(path))
+        # self.fields = {field["name"]: field for field in self.schema["fields"]}
+        # self.fieldnames = [field["name"] for field in self.schema["fields"]]
+        # self.normalised = {self.normalise(name): name for name in self.fieldnames}
 
     def load_dataset(self, path):
         reader = csv.DictReader(open(os.path.join(path, "dataset.csv")))
@@ -124,8 +135,34 @@ class Specification:
 
         if datatype in typemap:
             return typemap[datatype]()
+        # 'curie',
+        # 'flag',
+        # 'text',
 
         if fieldname in ["OrganisationURI"]:
             return OrganisationURIDataType()
 
+        # if "enum" in field.get("constraints", {}):
+        #     return EnumDataType(enum=field["constraints"]["enum"], name=fieldname)
+
+        # TODO do we still want constraints?
+        # minimum=constraints.get("minimum", None),
+        # maximum=constraints.get("maximum", None),
+
+        # if field.get("type", "") == "number":
+        #     return DecimalDataType(
+        #         precision=extra.get("precision", None),
+        #         minimum=constraints.get("minimum", None),
+        #         maximum=constraints.get("maximum", None),
+        #     )
+
         raise ValueError("unknown datatype '%s' for '%s' field" % (datatype, fieldname))
+
+    # No longer have the digital-land extension
+    # def strip(self, fieldname, value):
+    #     field = self.fields[fieldname]
+    #     extra = field.get("digital-land", {})
+
+    #     for strip in extra.get("strip", []):
+    #         value = re.sub(strip, "", value)
+    #     return value.strip()

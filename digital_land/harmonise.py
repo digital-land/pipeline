@@ -81,6 +81,10 @@ class Harmoniser:
     def apply_patch(self, fieldname, value):
         patches = {**self.patch.get(fieldname, {}), **self.patch.get("", {})}
         for pattern, replacement in patches.items():
+            # TODO validate this behaviour
+            # ensure we never get a partial match
+            if pattern[-1] != "$":
+                pattern = f"{pattern}$"
             match = re.match(pattern, value.lower())
             if match:
                 return match.expand(replacement)
@@ -145,6 +149,9 @@ class Harmoniser:
             o = {}
 
             for field in row:
+                # if field == "OrganisationURI":
+                #     __import__('pdb').set_trace()
+                #     pass
                 row[field] = self.apply_patch(field, row[field])
                 o[field] = self.harmonise_field(field, row[field])
 

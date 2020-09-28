@@ -1,29 +1,38 @@
+import csv
+import glob
+import hashlib
+import json
+import logging
 import os
 import os.path
 import re
-import glob
 from datetime import datetime
-import validators
-import logging
-import hashlib
-import csv
-import json
+from pathlib import Path
+
 import canonicaljson
+import validators
 
 
 def parse_log_path(path):
     m = re.match(r"^.*\/([-\d]+)\/(\w+).json", path)
+    __import__('pdb').set_trace()
     return m.groups()
 
 
 def parse_resource_path(path):
     m = re.match(r"^.*\/(\w+)$", path)
+    __import__('pdb').set_trace()
     return m.groups()[0]
 
 
 def parse_json_path(path):
     m = re.match(r"^.*\/(\w+).json", path)
+    __import__('pdb').set_trace()
     return m.groups()[0]
+
+
+def resource_hash_from(path):
+    return Path(path).stem
 
 
 def valid_url(n, url):
@@ -89,11 +98,14 @@ class Indexer:
         path = os.path.join(self.index_dir, name + ".csv")
         keyfield = fieldnames[0]
         writer = csv_writer(path, fieldnames)
+        # try:
         for key in sorted(data):
             row = data[key]
             if keyfield not in row:
                 row[keyfield] = key
             writer.writerow(row)
+        # except Exception:
+        #     __import__("pdb").post_mortem()
 
     #     def load(dataset):
     #         n = 0
@@ -119,11 +131,20 @@ class Indexer:
             valid_date(n, row["start-date"])
             valid_date(n, row["end-date"])
 
+            # key = endpoint (hash)
             key = hashlib.sha256(row["endpoint-url"].encode("utf-8")).hexdigest()
+            # idx[key] = {
+            #     "url": url,
+            #     "log": {},
+            #     "organisation": {}
+            # }
             self.idx.setdefault(
                 key, {"url": row.get("endpoint-url", ""), "log": {}, "organisation": {}}
             )
+            # TODO: PROBLEM; we no longer have organisation in endpoint.csv
             self.idx[key]["organisation"].setdefault(row["organisation"], {})
+
+            # TODO: Should be able to reinstate documentation-url
             for field in [
                 # "documentation-url",
                 "start-date",
@@ -134,7 +155,7 @@ class Indexer:
                         field
                     ]
 
-    def add(self, path, date, key, h):
+    def add_log_entry(self, path, date, key, h):
         if not h.get("url", ""):
             logging.error("no url in %s" % (path))
 
@@ -199,7 +220,7 @@ class Indexer:
         for path in glob.glob("%s*/*.json" % (self.log_dir)):
             (date, key) = parse_log_path(path)
             h = json.load(open(path))
-            self.add(path, date, key, h)
+            self.add_log_entry(path, date, key, h)
 
         # check resource files are in the log
         for path in glob.glob("%s*" % (self.resource_dir)):
@@ -210,49 +231,24 @@ class Indexer:
                 logging.error("no log for %s" % (path))
 
         # check resources in the log exist as files
-        for resource in self.resources:
-            if self.resources[resource]:
+        # any resources that still have log entires could not be found
+        for resource, logs in self.resources.items():
+            if logs:
                 logging.error(
                     "missing resource: %s listed in %s"
-                    % (resource, ", ".join(self.resources[resource]))
+                    % (resource, ", ".join(logs))
                 )
             # else:
             #     self.resources[resource] = {
             #         "row-count": count_rows_in(}
 
-        # for path in glob.glob("%s*.json" % (self.resource_dir)):
+        # TODO: Is this the same as the section above (line 216)
         for entry in os.scandir(self.resource_dir):
             resource = parse_resource_path(entry.path)
             if resource not in self.resources:
                 logging.error("no log for %s" % (entry.path))
 
             self.resources[resource] = {"row-count": count_rows_in(entry.path)}
-
-        # resources[resource] = {
-        #     "media-type": v["meta_data"].get("media_type", ""),
-        #     "suffix": v["meta_data"].get("suffix", ""),
-        #     "valid": v["result"].get("valid", False),
-        #     "error-count": v["result"].get("error-count", -1),
-        #     "row-count": v["result"]["tables"][0].get("row-count", 0),
-        # }
-
-        # process validation
-        # for path in glob.glob("%s*.json" % (validation_dir)):
-        #     v = json.load(open(path))
-        #     resource = parse_json_path(path)
-        #     if resource not in resources:
-        #         logging.error("no log for %s" % (path))
-
-        #     if not os.path.isfile(os.path.join(resource_dir, resource)):
-        #         logging.error("no resource file for %s" % (path))
-
-        #     resources[resource] = {
-        #         "media-type": v["meta_data"].get("media_type", ""),
-        #         "suffix": v["meta_data"].get("suffix", ""),
-        #         "valid": v["result"].get("valid", False),
-        #         "error-count": v["result"].get("error-count", -1),
-        #         "row-count": v["result"]["tables"][0].get("row-count", 0),
-        #     }
 
         for resource, r in self.resources.items():
             if not r or "row-count" not in r:
@@ -270,6 +266,7 @@ class Indexer:
         )
 
         # save index CSV files
+        # __import__('pdb').set_trace()
         self.save_csv(
             "resource",
             ["resource", "row-count"],
@@ -302,9 +299,14 @@ class Indexer:
             log,
         )
 
+        # l = "8e73e1d276728f6646faa15bf79328bfa19c09d84c50a2374d34d1a3c8ca3355"
+        # r = "44b52c0c31483d75316539eb8d81bea97a9ef7e1a7c8b64f1fb3cb531e465efa"
+
         link_resource = {}
         for entry in log.values():
             if "resource" in entry:
+                # if entry["resource"] == r:
+                #     __import__("pdb").set_trace()
                 link_resource[entry["link"] + entry["resource"]] = {
                     "link": entry["link"],
                     "resource": entry["resource"],
@@ -335,6 +337,8 @@ class Indexer:
                     "organisation": organisation,
                 }
         self.save_csv("link-organisation", ["link", "organisation"], rows)
+
+        __import__("pdb").set_trace()
 
         # index for harmonising missing OrganisationURI values
         rows = {}

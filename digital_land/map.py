@@ -30,6 +30,7 @@ class Mapper:
         return headers
 
     def concatenate_fields(self, row, o):
+        # __import__('pdb').set_trace()
         for fieldname, cat in self.concat.items():
             o[fieldname] = cat["separator"].join(
                 itertools.chain(
@@ -41,6 +42,16 @@ class Mapper:
                     ],
                 )
             )
+            # TODO uncomment and use this chunk which removes the
+            # leading separator when first field is blank
+
+            # o[fieldname] = cat["separator"].join(
+            #     filter(
+            #         None,
+            #         [o.get(fieldname, None)]
+            #         + [row.get(h, None) for h in cat["fields"]],
+            #     )
+            # )
         return o
 
     normalise_pattern = re.compile(r"[^a-z0-9-]")
