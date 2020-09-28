@@ -48,6 +48,7 @@ def load_csv_dict(path, inject_resource=False):
 
 def load_csv(path, encoding="UTF-8"):
     logging.debug(f"trying csv {path}")
+    __import__("pdb").set_trace()
 
     if not encoding:
         encoding = detect_encoding(path)
@@ -61,6 +62,9 @@ def load_csv(path, encoding="UTF-8"):
     content = f.read()
     if content.lower().startswith("<!doctype "):
         logging.debug(f"{path} has <!doctype")
+        return None
+    elif content.lower().startswith("<?xml "):
+        logging.debug(f"{path} has <?xml")
         return None
 
     f.seek(0)
@@ -83,6 +87,10 @@ def load_excel(path):
     return reader_with_line(f, resource_hash_from(path))
 
 
+def load_xml(path):
+    logging.debug(f"trying xml {path}")
+
+
 def reader_with_line(f, resource):
     for line in csv.reader(f):
         yield {
@@ -92,4 +100,4 @@ def reader_with_line(f, resource):
 
 
 def load(path):
-    return load_csv(path, encoding=None) or load_excel(path)
+    return load_csv(path, encoding=None) or load_excel(path) or load_xml(path)

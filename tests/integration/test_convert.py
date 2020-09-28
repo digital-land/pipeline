@@ -48,6 +48,16 @@ def input_file_csv(tmp_path):
     return p
 
 
+@pytest.fixture()
+def input_file_geo_json(tmp_path):
+    pass
+
+
+@pytest.fixture()
+def input_file_geo_zip(tmp_path):
+    pass
+
+
 def test_convert_xlsx(input_file_xlsx):
     _test_convert(input_file_xlsx)
 
@@ -56,14 +66,31 @@ def test_convert_csv(input_file_csv):
     _test_convert(input_file_csv)
 
 
+@pytest.mark.skip()
+def test_convert_geo_json(input_file_geo_json):
+    assert False, "TODO: Implement me"
+
+
+@pytest.mark.skip()
+def test_convert_geo_zip(input_file_geo_zip):
+    assert False, "TODO: Implement me"
+
+
 def _test_convert(input_file):
     output_file = input_file.with_suffix(".out")
     print(f"output  file: {output_file}")
     returncode, outs, errs = execute(
-        ["digital-land", "convert", input_file, output_file]
+        [
+            "digital-land",
+            "convert",
+            "some-pipeline",
+            input_file,
+            output_file,
+            "tests/data/pipeline",
+        ]
     )
 
-    assert returncode == 0, "return code non-zero"
+    assert returncode == 0, f"return code non-zero: {errs}"
     assert "ERROR" not in errs
 
     output = read_csv(output_file)
